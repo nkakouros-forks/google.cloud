@@ -19,15 +19,31 @@
 
 from __future__ import absolute_import, division, print_function
 
+import json
+
+################################################################################
+# Imports
+################################################################################
+from ansible_collections.google.cloud.plugins.module_utils.gcp_utils import (
+    GcpModule,
+    GcpRequest,
+    GcpSession,
+    navigate_hash,
+)
+
 __metaclass__ = type
 
 ################################################################################
 # Documentation
 ################################################################################
 
-ANSIBLE_METADATA = {'metadata_version': '1.1', 'status': ["preview"], 'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: gcp_compute_instance_info
 description:
@@ -100,9 +116,9 @@ notes:
 - For authentication, you can set scopes using the C(GCP_SCOPES) env variable.
 - Environment variables values will only be used if the playbook values are not set.
 - The I(service_account_email) and I(service_account_file) options are mutually exclusive.
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 - name: get info on an instance
   gcp_compute_instance_info:
     zone: us-central1-a
@@ -111,9 +127,9 @@ EXAMPLES = '''
     project: test_project
     auth_kind: serviceaccount
     service_account_file: "/tmp/auth.pem"
-'''
+"""
 
-RETURN = '''
+RETURN = """
 resources:
   description: List of resources
   returned: always
@@ -588,7 +604,7 @@ resources:
       - A reference to the zone where the machine resides.
       returned: success
       type: str
-'''
+"""
 
 ################################################################################
 # Imports
@@ -602,12 +618,21 @@ import json
 
 
 def main():
-    module = GcpModule(argument_spec=dict(filters=dict(type='list', elements='str'), zone=dict(required=True, type='str')))
+    module = GcpModule(
+        argument_spec=dict(
+            filters=dict(type="list", elements="str"),
+            zone=dict(required=True, type="str"),
+        )
+    )
 
-    if not module.params['scopes']:
-        module.params['scopes'] = ['https://www.googleapis.com/auth/compute']
+    if not module.params["scopes"]:
+        module.params["scopes"] = ["https://www.googleapis.com/auth/compute"]
 
-    return_value = {'resources': fetch_list(module, collection(module), query_options(module.params['filters']))}
+    return_value = {
+        "resources": fetch_list(
+            module, collection(module), query_options(module.params["filters"])
+        )
+    }
     module.exit_json(**return_value)
 
 
@@ -616,13 +641,15 @@ def collection(module):
 
 
 def fetch_list(module, link, query):
-    auth = GcpSession(module, 'compute')
-    return auth.list(link, return_if_object, array_name='items', params={'filter': query})
+    auth = GcpSession(module, "compute")
+    return auth.list(
+        link, return_if_object, array_name="items", params={"filter": query}
+    )
 
 
 def query_options(filters):
     if not filters:
-        return ''
+        return ""
 
     if len(filters) == 1:
         return filters[0]
@@ -630,12 +657,12 @@ def query_options(filters):
         queries = []
         for f in filters:
             # For multiple queries, all queries should have ()
-            if f[0] != '(' and f[-1] != ')':
-                queries.append("(%s)" % ''.join(f))
+            if f[0] != "(" and f[-1] != ")":
+                queries.append("(%s)" % "".join(f))
             else:
                 queries.append(f)
 
-        return ' '.join(queries)
+        return " ".join(queries)
 
 
 def return_if_object(module, response):
@@ -650,11 +677,11 @@ def return_if_object(module, response):
     try:
         module.raise_for_status(response)
         result = response.json()
-    except getattr(json.decoder, 'JSONDecodeError', ValueError) as inst:
+    except getattr(json.decoder, "JSONDecodeError", ValueError) as inst:
         module.fail_json(msg="Invalid JSON response with error: %s" % inst)
 
-    if navigate_hash(result, ['error', 'errors']):
-        module.fail_json(msg=navigate_hash(result, ['error', 'errors']))
+    if navigate_hash(result, ["error", "errors"]):
+        module.fail_json(msg=navigate_hash(result, ["error", "errors"]))
 
     return result
 
